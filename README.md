@@ -10,7 +10,7 @@ The task is to build a Streamlit app that allows users to analyze data from mult
 4. Google Client Library
 5. Streamlit 
 
-## Procedure
+## Project Overview
 
 1. Start by setting up a Streamlit application using the python library "streamlit", which provides an easy-to-use interface for users to enter a YouTube channel ID, view channel details, and select channels to migrate.
 2. Establish a connection to the YouTube API V3, which allows me to retrieve channel and video data by utilizing the Google API client library for Python. 
