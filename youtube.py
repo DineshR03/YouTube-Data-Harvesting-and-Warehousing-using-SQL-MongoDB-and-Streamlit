@@ -1,3 +1,5 @@
+# libraries
+
 from googleapiclient.discovery import build
 import pymongo
 import psycopg2
@@ -5,7 +7,7 @@ import pandas as pd
 import streamlit as st
 
 
-#API key connection
+# API key connection
 
 def Apiconnect():
     Api_Id="AIzaSyCFKKRjVR40azXx7Kanj4Ng15qeSVKoApQ"
@@ -18,7 +20,7 @@ def Apiconnect():
 
 youtube=Apiconnect()
 
-#collecting channel details
+# collecting channel details
 
 def get_channel_info(channel_id):
     
@@ -180,7 +182,7 @@ def channel_details(channel_id):
 
 #Table creation for channnels
 
-def channels_table():
+def channels_table(channel_name_s):
     mydb = psycopg2.connect(host="localhost",
             user="postgres",
             password="dineshr",
@@ -189,32 +191,28 @@ def channels_table():
             )
     cursor = mydb.cursor()
     
-    drop_query = "drop table if exists channels"
-    cursor.execute(drop_query)
+    
+    
+    create_query = '''create table if not exists channels(Channel_Name varchar(100),
+                    Channel_Id varchar(80) primary key, 
+                    Subscription_Count bigint, 
+                    Views bigint,
+                    Total_Videos int,
+                    Channel_Description text,
+                    Playlist_Id varchar(50))'''
+    cursor.execute(create_query)
     mydb.commit()
+    
 
-    try:
-        create_query = '''create table if not exists channels(Channel_Name varchar(100),
-                        Channel_Id varchar(80) primary key, 
-                        Subscription_Count bigint, 
-                        Views bigint,
-                        Total_Videos int,
-                        Channel_Description text,
-                        Playlist_Id varchar(50))'''
-        cursor.execute(create_query)
-        mydb.commit()
-    except:
-        st.write("Channels Table alredy created")    
-
-
-    ch_list = []
+    single_channel_details=[]
     db = client["Youtube_data"]
     collection1 = db["channel_details"]
-    for ch_data in collection1.find({},{"_id":0,"channel_information":1}):
-        ch_list.append(ch_data["channel_information"])
-    df = pd.DataFrame(ch_list)
+    for ch_data in collection1.find({"channel_information.Channel_Name":channel_name_s},{"_id":0}):
+        single_channel_details.append(ch_data["channel_information"])
 
-    for index,row in df.iterrows():
+        df_single_channel= pd.DataFrame(single_channel_details)
+
+    for index,row in df_single_channel.iterrows():
         insert_query = '''INSERT into channels(Channel_Name,
                                                     Channel_Id,
                                                     Subscription_Count,
@@ -233,15 +231,20 @@ def channels_table():
                 row['Total_Videos'],
                 row['Channel_Description'],
                 row['Playlist_Id'])
-        try:                     
+        try:
+                                 
             cursor.execute(insert_query,values)
-            mydb.commit()    
+            mydb.commit()
+                
         except:
-            st.write("Channels values are already inserted")
+            
+            news = f"Selected channel '{channel_name_s}' is already exists"
+            
+            return news
 
 #Table creation for playlists
 
-def playlists_table():
+def playlists_table(channel_name_s):
     
     mydb = psycopg2.connect(host="localhost",
             user="postgres",
@@ -252,33 +255,27 @@ def playlists_table():
     cursor = mydb.cursor()  
   
 
-    drop_query = "drop table if exists playlists"
-    cursor.execute(drop_query)
+    create_query = '''create table if not exists playlists(PlaylistId varchar(100) primary key,
+                    Title varchar(80), 
+                    ChannelId varchar(100), 
+                    ChannelName varchar(100),
+                    PublishedAt timestamp,
+                    VideoCount int
+                    )'''
+    cursor.execute(create_query)
     mydb.commit()
-
-    try:
-        create_query = '''create table if not exists playlists(PlaylistId varchar(100) primary key,
-                        Title varchar(80), 
-                        ChannelId varchar(100), 
-                        ChannelName varchar(100),
-                        PublishedAt timestamp,
-                        VideoCount int
-                        )'''
-        cursor.execute(create_query)
-        mydb.commit()
-    except:
-        st.write("Playlists Table alredy created")    
+      
 
 
+    single_playlist_details=[]
     db = client["Youtube_data"]
-    collection1 =db["channel_details"]
-    pl_list = []
-    for pl_data in collection1.find({},{"_id":0,"playlist_information":1}):
-        for i in range(len(pl_data["playlist_information"])):
-                pl_list.append(pl_data["playlist_information"][i])
-    df1 = pd.DataFrame(pl_list)
+    collection1 = db["channel_details"]
+    for ch_data in collection1.find({"channel_information.Channel_Name":channel_name_s},{"_id":0}):
+        single_playlist_details.append(ch_data["playlist_information"])
 
-    for index,row in df1.iterrows():
+    df_single_playlist_details= pd.DataFrame(single_playlist_details[0])
+        
+    for index,row in df_single_playlist_details.iterrows():
         insert_query = '''INSERT into playlists(PlaylistId,
                                                     Title,
                                                     ChannelId,
@@ -294,15 +291,14 @@ def playlists_table():
                 row['PublishedAt'],
                 row['VideoCount'])
                 
-        try:                     
-            cursor.execute(insert_query,values)
-            mydb.commit()    
-        except:
-            st.write("Playlists values are already inserted")
+                           
+        cursor.execute(insert_query,values)
+        mydb.commit()    
+            
             
 #Table creation for videos
             
-def videos_table():
+def videos_table(channel_name_s):
 
     mydb = psycopg2.connect(host="localhost",
                 user="postgres",
@@ -312,44 +308,38 @@ def videos_table():
                 )
     cursor = mydb.cursor()
 
-    drop_query = "drop table if exists videos"
-    cursor.execute(drop_query)
+
+    create_query = '''create table if not exists videos(
+                    Channel_Name varchar(150),
+                    Channel_Id varchar(100),
+                    Video_Id varchar(50) primary key, 
+                    Title varchar(150), 
+                    Tags text,
+                    Thumbnail varchar(225),
+                    Description text, 
+                    Published_Date timestamp,
+                    Duration interval, 
+                    Views bigint, 
+                    Likes bigint,
+                    Comments int,
+                    Favorite_Count int, 
+                    Definition varchar(10), 
+                    Caption_Status varchar(50) 
+                    )''' 
+                    
+    cursor.execute(create_query)             
     mydb.commit()
-
-    try:
-        create_query = '''create table if not exists videos(
-                        Channel_Name varchar(150),
-                        Channel_Id varchar(100),
-                        Video_Id varchar(50) primary key, 
-                        Title varchar(150), 
-                        Tags text,
-                        Thumbnail varchar(225),
-                        Description text, 
-                        Published_Date timestamp,
-                        Duration interval, 
-                        Views bigint, 
-                        Likes bigint,
-                        Comments int,
-                        Favorite_Count int, 
-                        Definition varchar(10), 
-                        Caption_Status varchar(50) 
-                        )''' 
-                        
-        cursor.execute(create_query)             
-        mydb.commit()
-    except:
-        st.write("Videos Table alrady created")
-
-    vi_list = []
+    
+    single_videos_details=[]
     db = client["Youtube_data"]
     collection1 = db["channel_details"]
-    for vi_data in collection1.find({},{"_id":0,"video_information":1}):
-        for i in range(len(vi_data["video_information"])):
-            vi_list.append(vi_data["video_information"][i])
-    df2 = pd.DataFrame(vi_list)
+    for ch_data in collection1.find({"channel_information.Channel_Name":channel_name_s},{"_id":0}):
+        single_videos_details.append(ch_data["video_information"])
+
+    df_single_videos_details= pd.DataFrame(single_videos_details[0])
         
     
-    for index, row in df2.iterrows():
+    for index, row in df_single_videos_details.iterrows():
         insert_query = '''
                     INSERT INTO videos (Channel_Name,
                         Channel_Id,
@@ -387,15 +377,13 @@ def videos_table():
                     row['Definition'],
                     row['Caption_Status'])
                                 
-        try:    
-            cursor.execute(insert_query,values)
-            mydb.commit()
-        except:
-            st.write("videos values already inserted in the table")
+            
+        cursor.execute(insert_query,values)
+        mydb.commit()
             
 #Table creation for comments
             
-def comments_table():
+def comments_table(channel_name_s):
     
     mydb = psycopg2.connect(host="localhost",
                 user="postgres",
@@ -405,32 +393,25 @@ def comments_table():
                 )
     cursor = mydb.cursor()
 
-    drop_query = "drop table if exists comments"
-    cursor.execute(drop_query)
+
+    create_query = '''CREATE TABLE if not exists comments(Comment_Id varchar(100) primary key,
+                    Video_Id varchar(80),
+                    Comment_Text text, 
+                    Comment_Author varchar(150),
+                    Comment_Published timestamp)'''
+    cursor.execute(create_query)
     mydb.commit()
-
-    try:
-        create_query = '''CREATE TABLE if not exists comments(Comment_Id varchar(100) primary key,
-                       Video_Id varchar(80),
-                       Comment_Text text, 
-                       Comment_Author varchar(150),
-                       Comment_Published timestamp)'''
-        cursor.execute(create_query)
-        mydb.commit()
         
-    except:
-        st.write("Commentsp Table already created")
 
-    com_list = []
+    single_comments_details=[]
     db = client["Youtube_data"]
     collection1 = db["channel_details"]
-    for com_data in collection1.find({},{"_id":0,"comment_information":1}):
-        for i in range(len(com_data["comment_information"])):
-            com_list.append(com_data["comment_information"][i])
-    df3 = pd.DataFrame(com_list)
+    for ch_data in collection1.find({"channel_information.Channel_Name":channel_name_s},{"_id":0}):
+        single_comments_details.append(ch_data["comment_information"])
 
+    df_single_comments_details= pd.DataFrame(single_comments_details[0])
 
-    for index, row in df3.iterrows():
+    for index, row in df_single_comments_details.iterrows():
             insert_query = '''
                 INSERT INTO comments (Comment_Id,
                                       Video_Id ,
@@ -447,19 +428,21 @@ def comments_table():
                 row['Comment_Author'],
                 row['Comment_Published']
             )
-            try:
-                cursor.execute(insert_query,values)
-                mydb.commit()
-            except:
-               st.write("This comments are already exist in comments table")
+            
+            cursor.execute(insert_query,values)
+            mydb.commit()
                
                
-def tables():
-    channels_table()
-    playlists_table()
-    videos_table()
-    comments_table()
-    return "Tables Created successfully"
+def tables(single_channel):
+    news = channels_table(single_channel)
+    if news:
+        return news
+    else:    
+        playlists_table(single_channel)
+        videos_table(single_channel)
+        comments_table(single_channel)
+        
+        return "Tables Created successfully"
 
 def show_channels_table():
     ch_list = []
@@ -500,153 +483,162 @@ def show_comments_table():
     comments_table = st.dataframe(com_list)
     return comments_table
 
-# Streamlit Creation
+def data_collection():
+    channel_id = st.text_input("Enter the Channel id")
+    channels = channel_id.split(',')
+    channels = [ch.strip() for ch in channels if ch]
 
-with st.sidebar:
-    st.title(":red[YOUTUBE DATA HARVESTING AND WAREHOUSING]")
-    st.header("PROJECT TAKE AWAY")
-    st.caption('Python scripting')
-    st.caption("Data Collection")
-    st.caption("MongoDB")
-    st.caption("API Integration")
-    st.caption(" Data Managment using MongoDB and SQL")
-    
-channel_id = st.text_input("Enter the Channel id")
-channels = channel_id.split(',')
-channels = [ch.strip() for ch in channels if ch]
-
-if st.button("Collect and Store data"):
-    for channel in channels:
-        ch_ids = []
-        db = client["Youtube_data"]
-        coll1 = db["channel_details"]
-        for ch_data in coll1.find({},{"_id":0,"channel_information":1}):
-            ch_ids.append(ch_data["channel_information"]["Channel_Id"])
-        if channel in ch_ids:
-            st.success("Channel details of the given channel id: " + channel + " already exists")
-        else:
-            output = channel_details(channel)
-            st.success(output)
+    if st.button("Collect and Store data"):
+        for channel in channels:
+            ch_ids = []
+            db = client["Youtube_data"]
+            coll1 = db["channel_details"]
+            for ch_data in coll1.find({},{"_id":0,"channel_information":1}):
+                ch_ids.append(ch_data["channel_information"]["Channel_Id"])
+            if channel in ch_ids:
+                st.success("Channel details of the given channel id: " + channel + " already exists")
+            else:
+                output = channel_details(channel)
+                st.success(output)
             
-if st.button("Migrate to SQL"):
-    display = tables()
-    st.success(display)
-    
-show_table = st.radio("SELECT THE TABLE FOR VIEW",(":green[channels]",":orange[playlists]",":red[videos]",":blue[comments]"))
 
-if show_table == ":green[channels]":
-    show_channels_table()
-elif show_table == ":orange[playlists]":
-    show_playlists_table()
-elif show_table ==":red[videos]":
-    show_videos_table()
-elif show_table == ":blue[comments]":
-    show_comments_table()
-    
-    
-# SQL Queries 
+    all_channels=[]
+    db = client["Youtube_data"]
+    collection1 = db["channel_details"]
+    for ch_data in collection1.find({},{"_id":0,"channel_information":1}):
+        all_channels.append(ch_data["channel_information"]["Channel_Name"])
+        
+    unique_channel= st.selectbox("Select the Channel",all_channels)
 
-mydb = psycopg2.connect(host="localhost",
+    if st.button("Migrate to SQL"):
+        display = tables(unique_channel)
+        st.success(display)
+        
+def show_queries():
+    mydb = psycopg2.connect(host="localhost",
                 user="postgres",
                 password="dineshr",
                 database= "youtube_data",
                 port = "5432"
                 )
-cursor = mydb.cursor()
+    cursor = mydb.cursor()
 
 
-question = st.selectbox(
-    'Please Select Your Question',
-    ('select your question',
-     '1. What are the names of all the videos and their corresponding channels?',
-     '2. Which channels have the most number of videos, and how many videos do they have?',
-     '3. What are the top 10 most viewed videos and their respective channels?',
-     '4. How many comments were made on each video, and what are their corresponding video names?',
-     '5. Which videos have the highest number of likes, and what are their corresponding channel names?',
-     '6. What is the total number of likes for each video, and what are their corresponding video names?',
-     '7. What is the total number of views for each channel, and what are their corresponding channel names?',
-     '8. What are the names of all the channels that have published videos in the year 2022?',
-     '9. What is the average duration of all videos in each channel, and what are their corresponding channel names?',
-     '10. Which videos have the highest number of comments, and what are their corresponding channel names?'))
+    question = st.selectbox(
+        'Please Select Your Question',
+        ('select your question',
+        '1. What are the names of all the videos and their corresponding channels?',
+        '2. Which channels have the most number of videos, and how many videos do they have?',
+        '3. What are the top 10 most viewed videos and their respective channels?',
+        '4. How many comments were made on each video, and what are their corresponding video names?',
+        '5. Which videos have the highest number of likes, and what are their corresponding channel names?',
+        '6. What is the total number of likes for each video, and what are their corresponding video names?',
+        '7. What is the total number of views for each channel, and what are their corresponding channel names?',
+        '8. What are the names of all the channels that have published videos in the year 2022?',
+        '9. What is the average duration of all videos in each channel, and what are their corresponding channel names?',
+        '10. Which videos have the highest number of comments, and what are their corresponding channel names?'))
 
-     
-if question == '1. What are the names of all the videos and their corresponding channels?':
-    query1 = "select Title as videos, Channel_Name as ChannelName from videos;"
-    cursor.execute(query1)
-    mydb.commit()
-    t1=cursor.fetchall()
-    st.write(pd.DataFrame(t1, columns=["Video Title","Channel Name"]))
+        
+    if question == '1. What are the names of all the videos and their corresponding channels?':
+        query1 = "select Title as videos, Channel_Name as ChannelName from videos;"
+        cursor.execute(query1)
+        mydb.commit()
+        t1=cursor.fetchall()
+        st.write(pd.DataFrame(t1, columns=["Video Title","Channel Name"]))
 
-elif question == '2. Which channels have the most number of videos, and how many videos do they have?':
-    query2 = "select Channel_Name as ChannelName,Total_Videos as NO_Videos from channels order by Total_Videos desc;"
-    cursor.execute(query2)
-    mydb.commit()
-    t2=cursor.fetchall()
-    st.write(pd.DataFrame(t2, columns=["Channel Name","No Of Videos"]))
+    elif question == '2. Which channels have the most number of videos, and how many videos do they have?':
+        query2 = "select Channel_Name as ChannelName,Total_Videos as NO_Videos from channels order by Total_Videos desc;"
+        cursor.execute(query2)
+        mydb.commit()
+        t2=cursor.fetchall()
+        st.write(pd.DataFrame(t2, columns=["Channel Name","No Of Videos"]))
 
-elif question == '3. What are the top 10 most viewed videos and their respective channels?':
-    query3 = '''select Views as views , Channel_Name as ChannelName,Title as VideoTitle from videos 
-                        where Views is not null order by Views desc limit 10;'''
-    cursor.execute(query3)
-    mydb.commit()
-    t3 = cursor.fetchall()
-    st.write(pd.DataFrame(t3, columns = ["Views","Channel Name","Video title"]))
+    elif question == '3. What are the top 10 most viewed videos and their respective channels?':
+        query3 = '''select Views as views , Channel_Name as ChannelName,Title as VideoTitle from videos 
+                            where Views is not null order by Views desc limit 10;'''
+        cursor.execute(query3)
+        mydb.commit()
+        t3 = cursor.fetchall()
+        st.write(pd.DataFrame(t3, columns = ["Views","Channel Name","Video title"]))
 
-elif question == '4. How many comments were made on each video, and what are their corresponding video names?':
-    query4 = "select Comments as No_comments ,Title as VideoTitle from videos where Comments is not null;"
-    cursor.execute(query4)
-    mydb.commit()
-    t4=cursor.fetchall()
-    st.write(pd.DataFrame(t4, columns=["No Of Comments", "Video Title"]))
+    elif question == '4. How many comments were made on each video, and what are their corresponding video names?':
+        query4 = "select Comments as No_comments ,Title as VideoTitle from videos where Comments is not null;"
+        cursor.execute(query4)
+        mydb.commit()
+        t4=cursor.fetchall()
+        st.write(pd.DataFrame(t4, columns=["No Of Comments", "Video Title"]))
 
-elif question == '5. Which videos have the highest number of likes, and what are their corresponding channel names?':
-    query5 = '''select Title as VideoTitle, Channel_Name as ChannelName, Likes as LikesCount from videos 
-                       where Likes is not null order by Likes desc;'''
-    cursor.execute(query5)
-    mydb.commit()
-    t5 = cursor.fetchall()
-    st.write(pd.DataFrame(t5, columns=["Video Title","Channel Name","Like count"]))
+    elif question == '5. Which videos have the highest number of likes, and what are their corresponding channel names?':
+        query5 = '''select Title as VideoTitle, Channel_Name as ChannelName, Likes as LikesCount from videos 
+                        where Likes is not null order by Likes desc;'''
+        cursor.execute(query5)
+        mydb.commit()
+        t5 = cursor.fetchall()
+        st.write(pd.DataFrame(t5, columns=["Video Title","Channel Name","Like count"]))
 
-elif question == '6. What is the total number of likes for each video, and what are their corresponding video names?':
-    query6 = '''select Likes as likeCount,Title as VideoTitle from videos;'''
-    cursor.execute(query6)
-    mydb.commit()
-    t6 = cursor.fetchall()
-    st.write(pd.DataFrame(t6, columns=["Like count","video title"]))
+    elif question == '6. What is the total number of likes for each video, and what are their corresponding video names?':
+        query6 = '''select Likes as likeCount,Title as VideoTitle from videos;'''
+        cursor.execute(query6)
+        mydb.commit()
+        t6 = cursor.fetchall()
+        st.write(pd.DataFrame(t6, columns=["Like count","video title"]))
 
-elif question == '7. What is the total number of views for each channel, and what are their corresponding channel names?':
-    query7 = "select Channel_Name as ChannelName, Views as Channelviews from channels;"
-    cursor.execute(query7)
-    mydb.commit()
-    t7=cursor.fetchall()
-    st.write(pd.DataFrame(t7, columns=["Channel name","Total views"]))
+    elif question == '7. What is the total number of views for each channel, and what are their corresponding channel names?':
+        query7 = "select Channel_Name as ChannelName, Views as Channelviews from channels;"
+        cursor.execute(query7)
+        mydb.commit()
+        t7=cursor.fetchall()
+        st.write(pd.DataFrame(t7, columns=["Channel name","Total views"]))
 
-elif question == '8. What are the names of all the channels that have published videos in the year 2022?':
-    query8 = '''select Title as Video_Title, Published_Date as VideoRelease, Channel_Name as ChannelName from videos 
-                where extract(year from Published_Date) = 2022;'''
-    cursor.execute(query8)
-    mydb.commit()
-    t8=cursor.fetchall()
-    st.write(pd.DataFrame(t8,columns=["Name", "Video Publised On", "Channel Name"]))
+    elif question == '8. What are the names of all the channels that have published videos in the year 2022?':
+        query8 = '''select Title as Video_Title, Published_Date as VideoRelease, Channel_Name as ChannelName from videos 
+                    where extract(year from Published_Date) = 2022;'''
+        cursor.execute(query8)
+        mydb.commit()
+        t8=cursor.fetchall()
+        st.write(pd.DataFrame(t8,columns=["Name", "Video Publised On", "Channel Name"]))
 
-elif question == '9. What is the average duration of all videos in each channel, and what are their corresponding channel names?':
-    query9 =  "SELECT Channel_Name as ChannelName, AVG(Duration) AS average_duration FROM videos GROUP BY Channel_Name;"
-    cursor.execute(query9)
-    mydb.commit()
-    t9=cursor.fetchall()
-    t9 = pd.DataFrame(t9, columns=['ChannelTitle', 'Average Duration'])
-    T9=[]
-    for index, row in t9.iterrows():
-        channel_title = row['ChannelTitle']
-        average_duration = row['Average Duration']
-        average_duration_str = str(average_duration)
-        T9.append({"Channel Title": channel_title ,  "Average Duration": average_duration_str})
-    st.write(pd.DataFrame(T9))
+    elif question == '9. What is the average duration of all videos in each channel, and what are their corresponding channel names?':
+        query9 =  "SELECT Channel_Name as ChannelName, AVG(Duration) AS average_duration FROM videos GROUP BY Channel_Name;"
+        cursor.execute(query9)
+        mydb.commit()
+        t9=cursor.fetchall()
+        t9 = pd.DataFrame(t9, columns=['ChannelTitle', 'Average Duration'])
+        T9=[]
+        for index, row in t9.iterrows():
+            channel_title = row['ChannelTitle']
+            average_duration = row['Average Duration']
+            average_duration_str = str(average_duration)
+            T9.append({"Channel Title": channel_title ,  "Average Duration": average_duration_str})
+        st.write(pd.DataFrame(T9))
 
-elif question == '10. Which videos have the highest number of comments, and what are their corresponding channel names?':
-    query10 = '''select Title as VideoTitle, Channel_Name as ChannelName, Comments as Comments from videos 
-                       where Comments is not null order by Comments desc;'''
-    cursor.execute(query10)
-    mydb.commit()
-    t10=cursor.fetchall()
-    st.write(pd.DataFrame(t10, columns=['Video Title', 'Channel Name', 'No Of Comments']))
+    elif question == '10. Which videos have the highest number of comments, and what are their corresponding channel names?':
+        query10 = '''select Title as VideoTitle, Channel_Name as ChannelName, Comments as Comments from videos 
+                        where Comments is not null order by Comments desc;'''
+        cursor.execute(query10)
+        mydb.commit()
+        t10=cursor.fetchall()
+        st.write(pd.DataFrame(t10, columns=['Video Title', 'Channel Name', 'No Of Comments']))
+    
+
+# Streamlit Creation
+st.title(":red[YOUTUBE] :green[DATA HARVESTING] AND :blue[WAREHOUSING] :clapper:")
+
+with st.sidebar:
+    st.title(":blue[PROJECT RESULTS]")
+    show_table = st.radio("SELECT THE OPTION TO VIEW",(":green[**Data Collection**]",":red[Channels]",":orange[Playlists]",":violet[Videos]",":blue[Comments]",":rainbow[**Questions**]"))
+    
+if show_table == ":red[Channels]":
+    show_channels_table()
+elif show_table == ":orange[Playlists]":
+    show_playlists_table()
+elif show_table ==":violet[Videos]":
+    show_videos_table()
+elif show_table == ":blue[Comments]":
+    show_comments_table()    
+elif show_table == ":green[**Data Collection**]":
+    data_collection()
+elif show_table == ":rainbow[**Questions**]":
+    show_queries()
+
+
