@@ -1,23 +1,40 @@
-# YouTube-Data-Harvesting-and-Warehousing-using-SQL-MongoDB-and-Streamlit
+# YouTube Data Harvesting and Warehousing using SQL, MongoDB, and Streamlit
 
-## Description
-The task is to build a Streamlit app that allows users to analyze data from multiple YouTube channels. Users can input a YouTube channel ID to access data like channel information, video details, and user engagement. The app should facilitate storing the data in a MongoDB database and allow users to collect data from up to 10 different channels. Additionally, it should offer the capability to migrate selected channel data from the data lake to a SQL database for further analysis. The app should enable searching and retrieval of data from the SQL database, including advanced options like joining tables for comprehensive channel information.
+## Introduction
+This project aims to harvest data from YouTube using the YouTube Data API, store it in both SQL and MongoDB databases, and provide a user-friendly interface for querying and analyzing the data using Streamlit.
 
 ## Technology Stack Used
+
 1. Python
-2. Postgresql
-3. MongoDB
-4. Google Client Library
-5. Streamlit 
+2. <span style="color:blue">PostgreSQL</span>
+3. <span style="color:green">MongoDB</span>
+4. <span style="color:red">Google Client Library</span>
+5. <span style="color:orange">Streamlit</span>
+
+
+## Features
+
+- **YouTube Data Harvesting**: Utilizes the YouTube Data API to fetch data such as video details, statistics, comments, etc.
+- **SQL and MongoDB Storage**: Data is stored in both SQL and MongoDB databases for flexibility and scalability.
+- **Streamlit Dashboard**: Provides a user-friendly interface built with Streamlit for querying and visualizing the data.
 
 ## Project Overview
 
-1. Start by setting up a Streamlit application using the python library "streamlit", which provides an easy-to-use interface for users to enter a YouTube channel ID, view channel details, and select channels to migrate.
-2. Establish a connection to the YouTube API V3, which allows me to retrieve channel and video data by utilizing the Google API client library for Python. 
-3. Store the retrieved data in a MongoDB data lake, as MongoDB is a suitable choice for handling unstructured and semi-structured data. This is done by firstly writing a    method to retrieve the previously called api call and storing the same data in the database in 3 different collections.
-4. Transferring the collected data from multiple channels namely the channels,videos and comments to a SQL data warehouse, utilizing a SQL database like MySQL or PostgreSQL for this purpose.
-5. Utilize SQL queries to join tables within the SQL data warehouse and retrieve specific channel data based on user input. For that the SQL table previously made has to be properly given the the foreign and the primary key. 
-6. Finally, create a Dashboard by using Streamlit with the retrived data and give dropdown options on the Dashboard to the user for selecting a question from that menu to analyse the data and show the output in Dataframe Table
+1. Begin by implementing a Streamlit application using the Python library "streamlit", offering a user-friendly interface for users to input a YouTube channel ID, explore channel details, and choose channels for migration.
+
+2. Establish a connection to the YouTube API V3 to access channel and video data. This involves leveraging the Google API client library for Python.
+
+3. Implement a method to retrieve data from the previously called API and store it in a MongoDB data lake. MongoDB is selected for its adeptness in handling unstructured and semi-structured data. Data is stored in three distinct collections within the database.
+
+4. Transfer the collected data from various channels, including channels, videos, and comments, to a SQL data warehouse. This involves utilizing a SQL database such as MySQL or PostgreSQL.
+
+5. Employ SQL queries to perform table joins within the SQL data warehouse and retrieve specific channel data based on user input. Properly defining foreign and primary keys within the SQL table is essential for this step.
+
+6. Develop a dashboard using Streamlit, integrating the retrieved data. Offer dropdown options on the dashboard to enable users to select a question from the menu for data analysis. Present the analysis output in a DataFrame Table format.
 
 ## Final Output
 ![Intro GUI](https://github.com/DineshR03/YouTube-Data-Harvesting-and-Warehousing-using-SQL-MongoDB-and-Streamlit/blob/main/Youtube_project_Final_UI_Output.png)
+
+## License
+
+This project is licensed under the [MIT License](LICENSE).
